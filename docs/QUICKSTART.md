@@ -1,14 +1,14 @@
 # MOTE binary quick-start
 
-Download the archive for your computer from https://github.com/danny-dis/MOTE/releases/latest.
-Source and release downloads are public; no GitHub account is required to download.
+Download your platform's archive from https://github.com/danny-dis/MOTE/releases/latest.
+Source and release downloads are public and do not require a GitHub account.
 
 - Windows x64: `x86_64-pc-windows-msvc.zip` (Windows 10/11).
 - Linux x64: `x86_64-unknown-linux-gnu.tar.gz` (Ubuntu 22.04 or newer compatible system, OpenSSL 3 and CA certificates required).
 - macOS Apple Silicon: `aarch64-apple-darwin.tar.gz` (macOS 14 or newer).
-- Intel Macs and other architectures: build from source for now.
+- Intel Macs and other architectures: build from source.
 
-Verify the archive against `SHA256SUMS` before extracting:
+Before extracting, compare the archive's checksum with `SHA256SUMS`:
 
 ```powershell
 # Windows PowerShell: compare this digest with the matching SHA256SUMS line.
@@ -22,14 +22,15 @@ sha256sum --check --ignore-missing SHA256SUMS
 shasum -a 256 mote-v*-aarch64-apple-darwin.tar.gz
 ```
 
-Archives contain `mote` and `mote-bridge` (`.exe` on Windows), this guide,
-`agent.yaml`, an empty `workspace`, and licenses. No Rust toolchain is needed.
-The binaries are not code-signed/notarized; your OS may show a warning. Checksums
-check integrity, not publisher identity. Do not disable system-wide security controls.
+Each archive includes `mote` and `mote-bridge` (`.exe` on Windows), this guide,
+`agent.yaml`, an empty `workspace`, and licenses. You do not need Rust installed.
+The binaries are unsigned and not notarized, so your OS may warn about them.
+Checksums check integrity, not publisher identity. Do not disable system-wide
+security controls to run a download.
 
 ## Command line
 
-Open a terminal in the extracted directory:
+Open a terminal in the extracted directory and check the executable:
 
 ```powershell
 .\mote.exe --version
@@ -41,12 +42,12 @@ Open a terminal in the extracted directory:
 ./mote --help
 ```
 
-Edit `agent.yaml` with your provider's OpenAI-compatible **chat completions**
-endpoint and model name. The example defaults to a local server, not a bundled model.
-If authentication is required, set the environment variable named in `auth_env`
-(`MOTE_API_KEY`) before running. For a keyless local server, remove `auth_env`
-from the manifest. Never put the key into YAML or commit it.
-Put only the files you want the agent to read in `workspace`.
+Set your provider's OpenAI-compatible chat-completions endpoint and model name in
+`agent.yaml`. The example points to a local server; MOTE does not bundle a model.
+If the endpoint needs authentication, set the environment variable named by
+`auth_env` (`MOTE_API_KEY`) before running. For a keyless local server, remove
+`auth_env` from the manifest. Never put a key in YAML or commit it.
+Place only the files you want the agent to read in `workspace`.
 
 ```powershell
 .\mote.exe --jsonl agent.yaml "List the workspace files and summarize them"
@@ -56,20 +57,20 @@ Put only the files you want the agent to read in `workspace`.
 ./mote --jsonl agent.yaml "List the workspace files and summarize them"
 ```
 
-`--jsonl` displays the tool observations and lifecycle events after the run ends;
-it is not a live stream. Without it, the CLI prints only the final state and event
-count, not a chat-style answer. Treat event output as potentially sensitive.
+`--jsonl` prints tool observations and lifecycle events after the run ends, not
+as a live stream. Without it, the CLI prints the final state and event count
+instead of a chat answer. Event output may contain sensitive data.
 
-The example grants only `list_dir` and `read_file`; it cannot write or run shell
-commands. Permission checks are not an OS sandbox. Use trusted workspaces and
-isolate untrusted workloads yourself. Provider availability and output correctness
-are separate from successful installation.
+The example grants `list_dir` and `read_file` only. It cannot write files or run
+shell commands. Permission checks do not provide an OS sandbox: use trusted
+workspaces and isolate untrusted workloads externally. Successful installation
+does not establish provider availability or output correctness.
 
 ## Python and TypeScript
 
-Install the SDK from the same release's source tag. Packages are not yet published
-to PyPI/npm. See https://github.com/danny-dis/MOTE/blob/production-ready/docs/BUILDING_ON_MOTE.md.
-Pass the extracted bridge's absolute path to your client:
+Install the SDK from the source tag matching your release. Packages are not
+published to PyPI/npm. See https://github.com/danny-dis/MOTE/blob/production-ready/docs/BUILDING_ON_MOTE.md.
+Give your client the extracted bridge's absolute path:
 
 ```python
 from mote_sdk import Client
@@ -81,50 +82,69 @@ import { Client } from "@mote-agent/sdk";
 const client = new Client({ binary: "/absolute/path/to/mote-bridge" });
 ```
 
-`mote-bridge` speaks JSON over stdin/stdout; it is not an interactive console or
-HTTP server. Use the SDK rather than double-clicking it. Application callbacks run
-with the host user's privileges; bridge timeouts do not terminate every descendant.
+`mote-bridge` exchanges JSON over stdin/stdout. It is neither an interactive console
+nor an HTTP server; launch it through the SDK. Application callbacks have the host
+user's privileges, and bridge timeouts cannot terminate every descendant process.
 
 ## Troubleshooting
 
-**Unknown field `api_key_env`.** Use `auth_env: MOTE_API_KEY`. The v0.13.0 release
-example had this typo; upgrade to v0.13.1 or fix that field. Unknown manifest fields
-are deliberately rejected, not silently ignored.
+### Unknown field `api_key_env`
 
-**Missing auth environment variable.** Set the variable named by `auth_env` in the
-same terminal or service that launches MOTE. It names a variable, not a literal key.
-For a keyless local model, remove `auth_env` entirely.
+Use `auth_env: MOTE_API_KEY`. The v0.13.0 release example contained this typo;
+upgrade to v0.13.1 or fix the field. Unknown manifest fields are rejected.
 
-**Connection refused / all models failed / HTTP 429 or 503.** Verify the endpoint,
-model name, credentials, quota, and provider availability. MOTE does not start a model
-server. OpenAI-compatible endpoints must include the chat-completions route, not just
-`/v1`. Increasing retries does not fix authentication or quota errors.
+### Missing auth environment variable
 
-**Capability rejected.** A trusted manifest must explicitly grant the action. A custom
-tool also needs a registered host handler. Do not grant shell access just to hide an error.
+Set the variable named by `auth_env` in the terminal or service that launches MOTE.
+The field names a variable, not a literal key. Remove `auth_env` for a keyless local model.
 
-**Bridge appears to hang when double-clicked.** It is not a GUI. SDKs communicate with
-`mote-bridge` over stdin/stdout. Launch `mote` from a terminal for CLI use.
+### Connection refused, all models failed, or HTTP 429/503
 
-**SDK cannot find the executable.** Pass the bridge's absolute path; on Windows it is
-`mote-bridge.exe`. SDK installation does not install or download the bridge.
+Check the endpoint, model name, credentials, quota, and provider availability.
+MOTE does not start a model server. An OpenAI-compatible endpoint needs the full
+chat-completions route, not just `/v1`. More retries will not fix authentication
+or quota errors.
 
-**Import fails in Node.** Build the source package before installing it into your app.
-Use the ESM import and package name documented in the [TypeScript SDK](https://github.com/danny-dis/MOTE/blob/production-ready/sdk/typescript/README.md).
+### Capability rejected
 
-**Output exists but the run failed, or a completed result is wrong.** Side effects may
-happen before failure. Inspect events and independently check output; do not blindly
-retry writes or external callbacks. A completed state is not semantic validation.
+The trusted manifest must grant the action. Custom tools also need registered
+host handlers. Do not grant shell access just to hide the error.
 
-**No live progress events.** Current CLI JSONL and SDK runtime events are emitted after
-the run. Host-tool callbacks are interactive; runtime event streaming is not implemented.
+### Bridge hangs when double-clicked
 
-**OS download warning.** Releases are unsigned/not notarized. Verify origin and checksum;
-do not disable system-wide protections. Build from source if your policy requires it.
+The bridge has no GUI. SDKs communicate with `mote-bridge` over stdin/stdout.
+For CLI use, launch `mote` from a terminal.
 
-**Linux shared-library error.** Use the matching architecture and an Ubuntu 22.04-compatible
-system with OpenSSL 3 and CA certificates, or build on your target system.
+### SDK cannot find the executable
 
-Still stuck? Check that the CLI, bridge, and SDK source versions match, reproduce
-in a small non-sensitive workspace, and follow the
+Pass the bridge's absolute path, ending in `mote-bridge.exe` on Windows.
+SDK installation does not install or download the bridge.
+
+### Import fails in Node
+
+Build the source package before installing it into your app. Use the ESM import
+and package name in the [TypeScript SDK](https://github.com/danny-dis/MOTE/blob/production-ready/sdk/typescript/README.md).
+
+### Output exists after failure, or a completed result is wrong
+
+Side effects can happen before failure. Inspect events and check output independently.
+Do not blindly retry writes or external callbacks. Completion does not validate meaning.
+
+### No live progress events
+
+CLI JSONL and SDK runtime events arrive after the run. Host-tool callbacks are
+interactive; runtime event streaming is not implemented.
+
+### OS download warning
+
+Releases are unsigned and not notarized. Verify the origin and checksum without
+disabling system-wide protections. Build from source if your policy requires it.
+
+### Linux shared-library error
+
+Use the matching architecture and an Ubuntu 22.04-compatible system with OpenSSL 3
+and CA certificates, or build on the target system.
+
+For other problems, check that CLI, bridge, and SDK source versions match. Reproduce
+in a small, non-sensitive workspace and follow the
 [bug-report guidance](https://github.com/danny-dis/MOTE/blob/production-ready/CONTRIBUTING.md#support-and-bug-reports).

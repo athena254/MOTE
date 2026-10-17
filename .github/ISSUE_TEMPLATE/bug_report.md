@@ -7,10 +7,11 @@ assignees: ''
 ---
 
 ## What happened?
-Describe expected and actual behavior.
+What did you expect, and what happened instead?
 
 ## Reproduction
-Provide the smallest command, code, and redacted manifest that demonstrates the problem.
+Share the smallest command or code example that reproduces the problem. Include
+the manifest with credentials and private data removed.
 
 ## Environment
 - MOTE version / commit:
@@ -20,10 +21,11 @@ Provide the smallest command, code, and redacted manifest that demonstrates the 
 - Provider adapter (no credentials):
 
 ## Evidence
-Include exit status and relevant redacted errors. A completed state alone does not
-prove output correctness; show the mismatched artifact if safe to share.
+Include the exit status and relevant errors after removing sensitive data. If
+the run completed but produced the wrong output, show the mismatch if it is safe
+to share.
 
 ## Checks
 - [ ] I removed credentials, private data, and sensitive logs.
-- [ ] I checked docs/QUICKSTART.md troubleshooting and existing issues.
-- [ ] This is not a private security report (see SECURITY.md).
+- [ ] I checked the troubleshooting advice in docs/QUICKSTART.md and searched existing issues.
+- [ ] This report does not disclose a security vulnerability; I will follow SECURITY.md for private reporting.

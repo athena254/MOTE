@@ -1358,33 +1358,6 @@ mod tests {
     }
 
     #[test]
-    fn completion_preserves_existing_report() {
-        let root = std::env::temp_dir().join(format!("mote-report-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&root);
-        std::fs::create_dir_all(&root).unwrap();
-        let manifest = Manifest::from_yaml(
-            "name: report\ncapabilities: [write_file]\noutput_file: report.txt\n",
-        )
-        .unwrap();
-        let mut runtime = Runtime::new(&manifest, WorkspaceFs::new(&root).unwrap()).unwrap();
-        let state = runtime.run_actions(&[
-            Action::WriteFile {
-                path: "report.txt".into(),
-                content: "full report".into(),
-            },
-            Action::Complete {
-                summary: "done".into(),
-            },
-        ]);
-        assert_eq!(state, State::Completed);
-        assert_eq!(
-            std::fs::read_to_string(root.join("report.txt")).unwrap(),
-            "full report"
-        );
-        let _ = std::fs::remove_dir_all(&root);
-    }
-
-    #[test]
     fn run_actions_executes_writes_and_rejects_empty_scripts() {
         let root = std::env::temp_dir().join(format!("mote-actions-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);

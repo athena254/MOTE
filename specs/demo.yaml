@@ -1,8 +1,0 @@
-name: demo
-workspace: ..
-capabilities: [list_dir, read_file]
-max_iterations: 8
-models:
-  - provider: dmr-x
-    model: auto
-    endpoint: http://127.0.0.1:47113/v1/chat/completions

@@ -7,16 +7,18 @@ assignees: ''
 ---
 
 ## Problem
-What actual task is difficult today? Who needs it?
+What are you trying to do, and where do you get stuck? Who else needs this?
 
 ## Proposed behavior
-Describe the smallest useful change and a way to verify it.
+Describe the smallest change that would help and how you would check that it works.
 
 ## Why the runtime?
-Could an application-owned tool, SDK wrapper, or external service provide this instead?
+Could a tool in your application, an SDK wrapper, or an external service handle
+this? Explain why it belongs in MOTE.
 
 ## Costs and boundaries
-Consider dependencies, compatibility, permissions, deployment, and maintenance.
+What would this change require in dependencies, compatibility, permissions,
+deployment, or ongoing maintenance?
 
 ## Alternatives
-What have you tried? Avoid including credentials or private data.
+What have you tried, and why did it fall short? Leave out credentials and private data.
