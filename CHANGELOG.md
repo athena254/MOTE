@@ -5,6 +5,14 @@ releases. SDK package versions and the bridge protocol have separate versions.
 
 ## Unreleased
 
+- Strip symbols from release binaries. Use `CARGO_PROFILE_RELEASE_STRIP=none` to keep
+  symbols in a diagnostic build.
+- Discard unused SDK stderr output through the OS rather than retaining buffers;
+  Python also avoids a stderr reader thread and queue.
+- Reuse HTTP connections for requests on the same thread with the same timeout.
+  Changing the timeout replaces that thread's client; public APIs and existing
+  connect/read/write timeouts are unchanged.
+
 - Fixed Python SDK test startup assumptions and closed the local test server's socket.
   Timeout tests still enforce short deadlines and now check child-process termination;
   trailing-output and callback-error checks have stronger assertions.
