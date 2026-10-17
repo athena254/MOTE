@@ -63,6 +63,14 @@ corruption; they are not code signatures.
 
 ## Local checks
 
+Release builds strip symbols. For a diagnostic build that keeps them, run:
+
+```sh
+CARGO_PROFILE_RELEASE_STRIP=none cargo build --locked --release --bins
+```
+
+This changes only that build; the default release artifacts stay stripped.
+
 ```sh
 python -m unittest discover -s scripts/tests -v
 cargo build --locked --release --bins

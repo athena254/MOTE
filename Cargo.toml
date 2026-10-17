@@ -12,6 +12,9 @@ exclude = [
     "site/**",
 ]
 
+[profile.release]
+strip = "symbols"
+
 [lib]
 name = "mote"
 
