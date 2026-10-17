@@ -107,11 +107,11 @@ exception text or sensitive input. To allow a registered tool to run, also
 grant its name in the manifest's capabilities. The SDK does not retry calls
 or runs. A failed run may already have changed files or other application state.
 
-Frames are limited to 1 MiB, including LF. The SDK retains at most 64 KiB of
-stderr. You receive events and observations in the final result; there is no
-live-event or progress-stream API. Avoid logging sensitive events. On timeout,
-the SDK kills and reaps the direct bridge child even if a handler promise
-never resolves. It cannot stop blocking JavaScript work or forcibly cancel
+Frames are limited to 1 MiB, including LF. The SDK discards bridge stderr through
+the OS without buffering it. You receive events and observations in the final
+result; there is no live-event or progress-stream API. Avoid logging sensitive
+events. On timeout, the SDK kills and reaps the direct bridge child even if a
+handler promise never resolves. It cannot stop blocking JavaScript work or forcibly cancel
 arbitrary descendants. The SDK and bridge do not provide an OS sandbox;
 callbacks run with your application's privileges.
 

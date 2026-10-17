@@ -1,4 +1,4 @@
-import { ChildProcess, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import { Buffer } from "node:buffer";
 
 export interface ModelConfig {
@@ -54,7 +54,6 @@ export class MoteError extends Error {
 }
 
 const MAX_FRAME = 1_048_576;
-const MAX_STDERR = 65_536;
 const states = new Set<RunState>(["completed", "failed", "cancelled"]);
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
@@ -79,12 +78,6 @@ class Frames {
     return out;
   }
   finish(): void { if (this.buf.length) throw new MoteError("unterminated stdout frame", "PROTOCOL"); }
-}
-
-function stderrCollector(child: ChildProcess): { text: () => string } {
-  let data = Buffer.alloc(0);
-  child.stderr?.on("data", (chunk: Buffer) => { data = Buffer.concat([data, chunk]); if (data.length > MAX_STDERR) data = data.subarray(data.length - MAX_STDERR); });
-  return { text: () => data.toString("utf8") };
 }
 
 export class Client {
@@ -121,7 +114,7 @@ export class Client {
       tools: toolNames.map(name => ({ name, description: tools[name].description })) });
     let child: ReturnType<typeof spawn>;
     try { child = spawn(this.options.binary, this.options.args ?? [], { shell: false, cwd: this.options.cwd,
-      env: { ...process.env, ...this.options.env }, stdio: ["pipe", "pipe", "pipe"] }); }
+      env: { ...process.env, ...this.options.env }, stdio: ["pipe", "pipe", "ignore"] }); }
     catch { throw new MoteError("could not start bridge", "TRANSPORT"); }
     const closed = new Promise<number | null>(resolve => child.once("close", code => resolve(code)));
     let stopped: MoteError | undefined;
@@ -129,15 +122,13 @@ export class Client {
     const failure = new Promise<never>((_, reject) => { rejectFailure = reject; });
     const shutdown = (): void => {
       if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
-      child.stdin?.destroy(); child.stdout?.destroy(); child.stderr?.destroy();
+      child.stdin?.destroy(); child.stdout?.destroy();
     };
     const abort = (error: MoteError): void => {
       if (!stopped) { stopped = error; rejectFailure(error); shutdown(); }
     };
     child.on("error", () => abort(new MoteError("bridge process error", "TRANSPORT")));
     child.stdin!.on("error", () => abort(new MoteError("bridge stdin failed", "TRANSPORT")));
-    child.stderr!.on("error", () => abort(new MoteError("bridge stderr failed", "TRANSPORT")));
-    stderrCollector(child);
     const timer = setTimeout(() => abort(new MoteError("bridge timed out", "TIMEOUT")), this.options.timeoutMs);
     const write = (bytes: Buffer): Promise<void> => {
       if (stopped) return Promise.reject(stopped);

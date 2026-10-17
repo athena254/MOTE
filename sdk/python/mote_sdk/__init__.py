@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from typing import Callable, Mapping
 
 MAX_FRAME = 1048576
-MAX_STDERR = 65536
 
 
 class MoteError(Exception):
@@ -74,16 +73,15 @@ class Client:
         argv = self.binary if isinstance(self.binary, (list, tuple)) else [self.binary]
         try:
             proc = subprocess.Popen(list(argv), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE, cwd=self.cwd, env=env, shell=False, bufsize=0)
+                                    stderr=subprocess.DEVNULL, cwd=self.cwd, env=env, shell=False, bufsize=0)
         except (OSError, ValueError) as exc:
             raise TransportError("could not start mote bridge") from exc
         # Keep protocol buffering bounded if a child floods stdout while a host
         # callback is running; the reader then applies backpressure to the pipe.
-        outq, errq = queue.Queue(maxsize=4), queue.Queue(maxsize=1)
+        outq = queue.Queue(maxsize=4)
         stop, expired = threading.Event(), threading.Event()
         readers = [
             threading.Thread(target=self._read_stdout, args=(proc.stdout, outq, stop), daemon=True),
-            threading.Thread(target=self._read_stderr, args=(proc.stderr, errq), daemon=True),
         ]
         deadline = time.monotonic() + self.timeout
         def expire():
@@ -161,7 +159,7 @@ class Client:
                 self._kill(proc)
             for reader in readers:
                 reader.join(timeout=.2)
-            for stream in (proc.stdin, proc.stdout, proc.stderr):
+            for stream in (proc.stdin, proc.stdout):
                 try: stream.close()
                 except Exception: pass
 
@@ -200,19 +198,6 @@ class Client:
             put(TransportError("stdout read failed"))
         finally:
             put(None)
-
-    @staticmethod
-    def _read_stderr(stream, q):
-        retained = bytearray()
-        try:
-            while True:
-                data = stream.read(8192)
-                if not data: break
-                if len(retained) < MAX_STDERR: retained.extend(data[:MAX_STDERR-len(retained)])
-        except (OSError, ValueError):
-            pass
-        finally:
-            q.put(bytes(retained))
 
     @staticmethod
     def _decode(line):

@@ -97,9 +97,10 @@ to `manifest["capabilities"]`. The SDK does not retry runs or callbacks. A
 failed or timed-out run may already have changed files or other application state.
 
 Each bridge stdout frame is limited to 1 MiB, including its newline. The SDK
-retains at most 64 KiB of stderr. You receive `events` and model observations
-after the run; there is no live-event or progress-stream API. They may contain
-sensitive data. On timeout, the watchdog kills and reaps the direct bridge
+discards bridge stderr through the OS without buffering it. You receive `events`
+and model observations after the run; there is no live-event or progress-stream
+API. They may contain sensitive data. On timeout, the watchdog kills and reaps
+the direct bridge
 child, but it cannot forcibly interrupt Python callbacks in the host process.
 Set your own bounds or isolation for blocking callbacks and descendants.
 The SDK and bridge do not provide an OS sandbox. Host code runs with your

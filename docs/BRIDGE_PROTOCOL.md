@@ -14,7 +14,8 @@ Python and TypeScript SDKs launch it with an argument array, never a shell.
 Send UTF-8 JSON objects over stdin/stdout, one per LF-terminated line. A frame may
 contain at most 1,048,576 bytes, including its newline. Blank, malformed, oversized,
 unterminated, and unexpected frames are errors. Reserve stdout for the protocol
-and stderr for diagnostics. SDKs retain at most 65,536 bytes of stderr.
+and stderr for diagnostics. The bundled SDKs discard stderr through the OS;
+they do not buffer it or return it to the caller.
 
 The host starts the run with:
 
