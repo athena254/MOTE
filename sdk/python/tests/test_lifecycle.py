@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import queue
 import subprocess
 import sys
 import time
@@ -9,24 +10,21 @@ import pytest
 from mote_sdk import Client, MoteError, ProtocolError, SetupError, Tool
 
 
-def fixture(tmp_path, body, cls=Client, timeout=2):
+def fixture(tmp_path, body):
     script = tmp_path / "fixture.py"
     script.write_text("import sys,json,time\nsys.stdin.readline()\n" + body, encoding="utf-8")
-    return cls(binary=[sys.executable, str(script)], timeout=timeout)
+    # Allow interpreter startup; dedicated timeout tests keep short explicit deadlines.
+    return Client(binary=[sys.executable, str(script)], timeout=15)
 
 
-def test_delayed_trailing_frame_is_not_ignored(tmp_path):
-    class DelayedReader(Client):
-        @staticmethod
-        def _read_stdout(stream, q, *args):
-            q.put(stream.readline())
-            extra = stream.readline()
-            time.sleep(.2)  # Child exited before the reader publishes remaining data.
-            q.put(extra)
-            q.put(None)
-    client = fixture(tmp_path, "print(json.dumps({'type':'run_result','state':'completed','events':[]})); print('{}')", cls=DelayedReader)
-    with pytest.raises(ProtocolError):
-        client.run({}, "go")
+@pytest.mark.parametrize("tail, has_extra", [(b"{}\n", True), (None, False)])
+def test_delayed_trailing_frame_is_not_ignored(tail, has_extra):
+    class PendingOutput(queue.Queue):
+        def get(self, *args, **kwargs):
+            # Publish on a wait, after any premature empty-queue inspection.
+            self.put(tail)
+            return super().get(*args, **kwargs)
+    assert Client._drain(PendingOutput(), time.monotonic() + 15) is has_extra
 
 
 def test_no_read_child_cannot_block_startup_forever(tmp_path):
@@ -34,7 +32,8 @@ def test_no_read_child_cannot_block_startup_forever(tmp_path):
     sleeping = tmp_path / "sleep.py"
     sleeping.write_text("import time; time.sleep(4)")
     outer = "from mote_sdk import Client,TimeoutError; import sys\ntry:\n Client(binary=[sys.executable,sys.argv[1]],timeout=.2).run({},'x'*900000)\nexcept TimeoutError:\n sys.exit(0)\nsys.exit(1)"
-    result = subprocess.run([sys.executable, "-c", outer, str(sleeping)], timeout=2, capture_output=True, env={**os.environ, "PYTHONPATH": str(Path(__file__).parents[1])})
+    # The outer guard includes interpreter startup; the SDK deadline stays .2 seconds.
+    result = subprocess.run([sys.executable, "-c", outer, str(sleeping)], timeout=15, capture_output=True, env={**os.environ, "PYTHONPATH": str(Path(__file__).parents[1])})
     assert result.returncode == 0, result.stderr.decode()
 
 
@@ -47,7 +46,7 @@ def test_invalid_deadline_rejected(timeout):
 @pytest.mark.parametrize("tail", ["print('{bad}')", "sys.stdout.write('partial')"])
 def test_malformed_bytes_after_terminal_fail(tmp_path, tail):
     client = fixture(tmp_path, "print(json.dumps({'type':'run_result','state':'completed','events':[]})); " + tail)
-    with pytest.raises(MoteError):
+    with pytest.raises(ProtocolError):
         client.run({}, "go")
 
 

@@ -5,6 +5,9 @@ releases. SDK package versions and the bridge protocol have separate versions.
 
 ## Unreleased
 
+- Fixed Python SDK test startup assumptions and closed the local test server's socket.
+  Timeout tests still enforce short deadlines and now check child-process termination;
+  trailing-output and callback-error checks have stronger assertions.
 - Rewrote documentation and website copy in plain language, preserving commands,
   API contracts, and security limits.
 - Removed the unused input file and disk-check script, and the duplicate demo manifest.

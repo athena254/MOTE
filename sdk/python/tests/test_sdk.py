@@ -1,15 +1,14 @@
 import json
 import os
-import stat
+import subprocess
 import sys
 import threading
-import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 import pytest
 
-from mote_sdk import Client, MoteError, ProtocolError, Tool, TransportError
+from mote_sdk import Client, MoteError, ProtocolError, TimeoutError, Tool, TransportError
 
 
 ROOT = Path(__file__).parent
@@ -22,7 +21,7 @@ def child(tmp_path, script):
 
 
 def client(tmp_path, script, **kw):
-    return Client(binary=sys.executable, cwd=str(tmp_path), env={"PYTHONPATH": str(ROOT.parent)}, **kw), [sys.executable, child(tmp_path, script)]
+    return Client(binary=[sys.executable, child(tmp_path, script)], cwd=str(tmp_path), env={"PYTHONPATH": str(ROOT.parent)}, **kw)
 
 
 def test_success_and_callback(tmp_path):
@@ -30,8 +29,7 @@ def test_success_and_callback(tmp_path):
 run=json.loads(sys.stdin.readline()); print(json.dumps({'type':'tool_call','id':1,'name':'up','input':{'text':'hello'}}),flush=True)
 r=json.loads(sys.stdin.readline()); assert r['output']=='HELLO'; print(json.dumps({'type':'run_result','state':'completed','events':[{'kind':'observation','text':'HELLO'}]}),flush=True)
 """
-    c, _ = client(tmp_path, script)
-    c.binary = [sys.executable, child(tmp_path, script)]
+    c = client(tmp_path, script)
     got = c.run({"capabilities": ["up"]}, "go", {"up": Tool("upper", lambda x: x["text"].upper())})
     assert got.success and got.events[0]["text"] == "HELLO" and got.returncode == 0
 
@@ -40,7 +38,7 @@ def test_denied_tool_does_not_run(tmp_path):
     script = """import sys,json
 json.loads(sys.stdin.readline()); print(json.dumps({'type':'tool_call','id':1,'name':'up','input':{}}),flush=True); print(json.dumps({'type':'run_result','state':'failed','events':[]}),flush=True); sys.exit(1)
 """
-    c, _ = client(tmp_path, script); c.binary = [sys.executable, child(tmp_path, script)]
+    c = client(tmp_path, script)
     called = []
     result = c.run({"capabilities": []}, "go", {"up": Tool("x", lambda x: called.append(1) or "x")})
     assert not called and not result.success
@@ -50,16 +48,18 @@ json.loads(sys.stdin.readline()); print(json.dumps({'type':'tool_call','id':1,'n
 def test_bad_frames(tmp_path, kind):
     payload = {"json": "b'{bad}\\n'", "oversized": "b'x' * 1048577 + b'\\n'", "truncated": "b'{\\\"type\\\":\\\"run_result\\\"'"}[kind]
     script = "import sys; sys.stdin.buffer.readline(); sys.stdout.buffer.write(" + payload + "); sys.stdout.buffer.flush()"
-    c, _ = client(tmp_path, script); c.binary = [sys.executable, child(tmp_path, script)]
+    c = client(tmp_path, script)
     with pytest.raises((ProtocolError, TransportError)):
         c.run({}, "x")
 
 
 def test_callback_errors_redacted_and_non_string(tmp_path):
     script = """import sys,json
-json.loads(sys.stdin.readline()); print(json.dumps({'type':'tool_call','id':1,'name':'x','input':{'secret':'dont-log'}}),flush=True); print(json.dumps({'type':'run_result','state':'failed','events':[]}),flush=True); sys.exit(1)
+json.loads(sys.stdin.readline()); print(json.dumps({'type':'tool_call','id':1,'name':'x','input':{'secret':'dont-log'}}),flush=True)
+reply=json.loads(sys.stdin.readline()); assert reply=={'type':'tool_result','id':1,'error':'tool failed'}
+print(json.dumps({'type':'run_result','state':'failed','events':[]}),flush=True); sys.exit(1)
 """
-    c, _ = client(tmp_path, script); c.binary = [sys.executable, child(tmp_path, script)]
+    c = client(tmp_path, script)
     seen = []
     c.run({"capabilities": ["x"]}, "x", {"x": Tool("x", lambda x: seen.append(x) or 4)})
     assert seen == [{"secret": "dont-log"}]
@@ -73,19 +73,26 @@ json.loads(sys.stdin.readline()); print(json.dumps({'type':'tool_call','id':1,'n
 ])
 def test_protocol_validation(tmp_path, messages):
     script = "import sys,json; sys.stdin.readline(); [print(json.dumps(x), flush=True) for x in " + repr(messages) + "]"
-    c, _ = client(tmp_path, script); c.binary = [sys.executable, child(tmp_path, script)]
+    c = client(tmp_path, script)
     if len(messages) == 1 and messages[0].get("type") == "run_result":
         assert c.run({"capabilities": ["x"]}, "x", {"x": Tool("x", lambda x: "ok")}).success
     else:
         with pytest.raises(MoteError): c.run({"capabilities": ["x"]}, "x", {"x": Tool("x", lambda x: "ok")})
 
 
-def test_timeout_kills_child(tmp_path):
-    marker = tmp_path / "alive"
-    script = "import sys,time; sys.stdin.readline(); open(" + repr(str(marker)) + ",'w').close(); time.sleep(30)"
-    c, _ = client(tmp_path, script, timeout=1); c.binary = [sys.executable, child(tmp_path, script)]
-    with pytest.raises(MoteError): c.run({}, "x")
-    assert marker.exists()
+def test_timeout_kills_child(tmp_path, monkeypatch):
+    children = []
+    spawn = subprocess.Popen
+    def record_child(*args, **kwargs):
+        proc = spawn(*args, **kwargs)
+        children.append(proc)
+        return proc
+    monkeypatch.setattr("mote_sdk.subprocess.Popen", record_child)
+    c = client(tmp_path, "import sys,time; sys.stdin.readline(); time.sleep(30)", timeout=.2)
+    with pytest.raises(TimeoutError):
+        c.run({}, "x")
+    assert len(children) == 1
+    assert children[0].poll() is not None
 
 
 def test_e2e_bridge():
@@ -115,3 +122,4 @@ def test_e2e_bridge():
         assert result.success and any("HELLO" in json.dumps(event) for event in result.events)
     finally:
         server.shutdown()
+        server.server_close()
