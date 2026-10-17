@@ -9,9 +9,10 @@ releases. SDK package versions and the bridge protocol have separate versions.
   symbols in a diagnostic build.
 - Discard unused SDK stderr output through the OS rather than retaining buffers;
   Python also avoids a stderr reader thread and queue.
-- Reuse HTTP connections for requests on the same thread with the same timeout.
-  Changing the timeout replaces that thread's client; public APIs and existing
-  connect/read/write timeouts are unchanged.
+- Removed experimental HTTP connection pooling: the locked ureq 2.12.1 library
+  clears socket timeouts on reuse, allowing later requests to stall. Fresh
+  per-request clients preserve connect/read/write timeouts. Added a regression
+  that delays the second same-timeout request's response headers.
 
 - Fixed Python SDK test startup assumptions and closed the local test server's socket.
   Timeout tests still enforce short deadlines and now check child-process termination;
