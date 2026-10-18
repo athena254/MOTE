@@ -21,6 +21,8 @@ releases. SDK package versions and the bridge protocol have separate versions.
   trailing-output and callback-error checks have stronger assertions.
 - Isolated pending-callback test timing from child-process startup in the TypeScript
   SDK suite (test-only release fix; runtime deadlines are unchanged).
+- HTTP test servers now consume complete requests before responding and closing,
+  avoiding platform-specific socket resets in the timeout/size-limit fixtures.
 - Rewrote documentation and website copy in plain language, preserving commands,
   API contracts, and security limits.
 - Removed the unused input file and disk-check script, and the duplicate demo manifest.

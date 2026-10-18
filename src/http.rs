@@ -45,6 +45,30 @@ mod tests {
     use std::net::TcpListener;
     use std::thread;
 
+    fn read_request(stream: &mut impl BufRead) -> bool {
+        let mut line = String::new();
+        if stream.read_line(&mut line).unwrap() == 0 {
+            return false;
+        }
+        let mut length = 0;
+        loop {
+            line.clear();
+            assert!(stream.read_line(&mut line).unwrap() > 0);
+            if line.as_bytes() == [13, 10] {
+                break;
+            }
+            if let Some((name, value)) = line.split_once(':') {
+                if name.eq_ignore_ascii_case("content-length") {
+                    length = value.trim().parse::<usize>().unwrap();
+                }
+            }
+        }
+        let mut body = vec![0; length];
+        stream.read_exact(&mut body).unwrap();
+        assert_eq!(body, b"{}");
+        true
+    }
+
     #[test]
     fn repeated_requests_keep_header_timeout() {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -56,27 +80,12 @@ mod tests {
                 .unwrap();
             let mut stream = BufReader::new(stream);
             for request in 0..2 {
-                let mut line = String::new();
-                if stream.read_line(&mut line).unwrap() == 0 {
+                if !read_request(&mut stream) {
                     let (next, _) = listener.accept().unwrap();
                     next.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
                     stream = BufReader::new(next);
-                    assert!(stream.read_line(&mut line).unwrap() > 0);
+                    assert!(read_request(&mut stream));
                 }
-                let mut length = 0;
-                loop {
-                    line.clear();
-                    assert!(stream.read_line(&mut line).unwrap() > 0);
-                    if line.as_bytes() == [13, 10] {
-                        break;
-                    }
-                    if let Some((name, value)) = line.split_once(':') {
-                        if name.eq_ignore_ascii_case("content-length") {
-                            length = value.trim().parse::<usize>().unwrap();
-                        }
-                    }
-                }
-                stream.read_exact(&mut vec![0; length]).unwrap();
                 if request == 1 {
                     thread::sleep(Duration::from_secs(2));
                 }
@@ -114,13 +123,14 @@ mod tests {
             let listener = TcpListener::bind("127.0.0.1:0").unwrap();
             let endpoint = format!("http://{}/", listener.local_addr().unwrap());
             let server = thread::spawn(move || {
-                let (mut stream, _) = listener.accept().unwrap();
+                let (stream, _) = listener.accept().unwrap();
                 stream
                     .set_read_timeout(Some(Duration::from_secs(5)))
                     .unwrap();
-                stream.read_exact(&mut [0]).unwrap();
+                let mut stream = BufReader::new(stream);
+                assert!(read_request(&mut stream));
                 thread::sleep(Duration::from_millis(300));
-                let _ = stream.write_all(
+                let _ = stream.get_mut().write_all(
                     b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}",
                 );
             });
