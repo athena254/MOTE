@@ -5,6 +5,8 @@ releases. SDK package versions and the bridge protocol have separate versions.
 
 ## Unreleased
 
+## 0.14.0
+
 - Strip symbols from release binaries. Use `CARGO_PROFILE_RELEASE_STRIP=none` to keep
   symbols in a diagnostic build.
 - Discard unused SDK stderr output through the OS rather than retaining buffers;
@@ -17,6 +19,8 @@ releases. SDK package versions and the bridge protocol have separate versions.
 - Fixed Python SDK test startup assumptions and closed the local test server's socket.
   Timeout tests still enforce short deadlines and now check child-process termination;
   trailing-output and callback-error checks have stronger assertions.
+- Isolated pending-callback test timing from child-process startup in the TypeScript
+  SDK suite (test-only release fix; runtime deadlines are unchanged).
 - Rewrote documentation and website copy in plain language, preserving commands,
   API contracts, and security limits.
 - Removed the unused input file and disk-check script, and the duplicate demo manifest.
