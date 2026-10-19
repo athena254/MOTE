@@ -7,15 +7,16 @@ in [Configuration](CONFIGURATION.md). CLI JSONL uses a different format.
 Build the separate `mote-bridge` executable with `cargo build --release --bins`.
 It embeds the Rust runtime and leaves the `mote` CLI unchanged. Each process runs
 one task. It provides no HTTP service, dynamic plug-in loader, or OS sandbox.
-Python and TypeScript SDKs launch it with an argument array, never a shell.
+Python, TypeScript and Go SDKs launch it with an argument array, never a shell.
 
 ## Transport
 
 Send UTF-8 JSON objects over stdin/stdout, one per LF-terminated line. A frame may
 contain at most 1,048,576 bytes, including its newline. Blank, malformed, oversized,
 unterminated, and unexpected frames are errors. Reserve stdout for the protocol
-and stderr for diagnostics. The bundled SDKs discard stderr through the OS;
-they do not buffer it or return it to the caller.
+and stderr for diagnostics. Python and TypeScript discard stderr through the OS.
+The Go SDK drains it with at most 64 KiB retained internally. No bundled SDK
+returns stderr to the caller.
 
 The host starts the run with:
 
@@ -75,7 +76,7 @@ manifest run deadline. SDKs also enforce a configurable child-process wall-clock
 timeout, defaulting to 150 seconds. On timeout or protocol error, they kill and
 reap the child. Missing, truncated, and duplicate terminal results are rejected.
 
-Python synchronous callbacks and JavaScript callbacks execute in the host
+Python synchronous callbacks, Go handlers and JavaScript callbacks execute in the host
 application. SDK process timeouts cannot forcibly stop arbitrary blocking host
 code. Bound callbacks yourself or isolate them in separate workers. Killing the
 bridge does not kill its entire process tree; tools that spawn children need their

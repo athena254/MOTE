@@ -11,8 +11,11 @@ jobs:
   build-and-test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # Match the macOS release baseline: Go 1.22 predates the LC_UUID
+        # requirement enforced by the macOS 26 loader on macos-latest.
+        os: [ubuntu-latest, windows-latest, macos-14]
         rust: [stable]
 
     steps:
@@ -42,6 +45,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install Go for SDK tests
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: false
       - name: Release tooling tests
         run: python -m unittest discover -s scripts/tests -v
       - name: Python SDK and real bridge integration
@@ -59,6 +67,20 @@ jobs:
           npm --prefix sdk/typescript ci
           npm --prefix sdk/typescript test
           npm --prefix sdk/typescript run pack:check
+      - name: Go SDK and real bridge integration
+        shell: bash
+        env:
+          MOTE_BRIDGE: ${{ github.workspace }}/target/release/mote-bridge${{ runner.os == 'Windows' && '.exe' || '' }}
+        run: |
+          cd sdk/go
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            printf '%s\n' "$unformatted"
+            exit 1
+          fi
+          go build ./...
+          go vet ./...
+          go test ./...
       - name: Rust application starter
         shell: bash
         env:

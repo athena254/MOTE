@@ -48,14 +48,14 @@ integrity, not publisher identity.
   fallback, run/tool/observation limits, cancellation hooks, and post-run events.
 - Built-in tools read and write files, list directories, run restricted shell/Git
   commands, and make optional typed decisions. Access is opt-in.
-- Applications can register Rust handlers or Python/TypeScript callbacks through
+- Applications can register Rust handlers or Python/TypeScript/Go callbacks through
   the separate `mote-bridge` process. Registration does not grant permission.
-- Thin SDKs and a Rust starter have no third-party SDK runtime dependencies.
+- Thin Python/TypeScript/Go SDKs and a Rust starter have no third-party SDK runtime dependencies.
 - Distribution checks include cross-platform CI and extracted-archive integration
   tests. Archives include dependency license notices; releases include SHA-256 checksums.
 
 The Rust package is `mote-agent`, imported as `mote`. The unrelated `mote` package
-on crates.io is not this project. Install the Python/TypeScript SDKs from source,
+on crates.io is not this project. Install the Python/TypeScript/Go SDKs from source,
 not npm/PyPI, and match the source and SDKs to your installed release.
 
 ## What MOTE does not provide
@@ -76,9 +76,10 @@ outputs in your deployment.
   [Configuration reference](docs/CONFIGURATION.md).
 - [Choose an integration](docs/BUILDING_ON_MOTE.md) ·
   [Python SDK](sdk/python/README.md) · [TypeScript SDK](sdk/typescript/README.md) ·
-  [Rust starter](starters/rust-agent/README.md).
+  [Go SDK](sdk/go/README.md) · [Rust starter](starters/rust-agent/README.md).
 - [Architecture and design principles](docs/ARCHITECTURE.md) ·
   [Bridge protocol](docs/BRIDGE_PROTOCOL.md) · [Security](SECURITY.md).
+- [Official Go SDK specification for v0.14.1](docs/GO_SDK_SPEC.md).
 - [Contributing and support](CONTRIBUTING.md) ·
   [Release procedure](docs/RELEASING.md) · [Changelog](CHANGELOG.md).
 

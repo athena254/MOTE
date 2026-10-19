@@ -5,6 +5,18 @@ releases. SDK package versions and the bridge protocol have separate versions.
 
 ## Unreleased
 
+## 0.14.1
+
+- Add the official Go 1.22+ SDK (`sdk/go`) for bridge protocol v1, alongside
+  Python and TypeScript. The standard-library-only SDK supports host tool
+  callbacks, explicit capability grants, typed errors and per-run child processes.
+- Define the supported Go SDK contract and release acceptance checks in
+  [Go SDK specification](docs/GO_SDK_SPEC.md).
+- Preserve TIMEOUT errors and context causes when deadlines or cancellation
+  interrupt pipe writes; document synchronous callback cancellation limits.
+- Exercise Go callbacks, redaction and real-bridge observations in tests, and
+  include the Go suite in extracted-release integration checks.
+
 ## 0.14.0
 
 - Strip symbols from release binaries. Use `CARGO_PROFILE_RELEASE_STRIP=none` to keep

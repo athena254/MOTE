@@ -38,6 +38,7 @@ You need stable Rust and the native build tools for your target:
 
 Repository release tooling uses Python 3.11, as does CI. The Python SDK's package
 metadata lists its supported runtime. Use Node 22 to match TypeScript SDK CI.
+Go 1.22 or newer is required for the Go SDK checks.
 
 ```sh
 cargo build --locked --release --bins
@@ -77,6 +78,9 @@ npm --prefix sdk/typescript run pack:check
 cargo test --locked --manifest-path starters/rust-agent/Cargo.toml
 cargo fmt --check --manifest-path starters/rust-agent/Cargo.toml
 cargo clippy --locked --manifest-path starters/rust-agent/Cargo.toml --all-targets -- -D warnings
+go -C sdk/go build ./...
+go -C sdk/go vet ./...
+go -C sdk/go test ./...
 ```
 
 SDK integration fixtures run real subprocesses and callbacks against a local scripted
