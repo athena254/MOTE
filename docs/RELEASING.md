@@ -14,11 +14,11 @@ ordinary commits do not trigger releases.
    missing or empty. Commit and push to `production-ready`.
 2. Check that the working tree is clean and up to date.
 3. Create and push an annotated tag matching the new `Cargo.toml` version.
-   This example assumes an unreleased `0.14.0`; substitute your new version:
+   These commands illustrate `0.14.1`; always use a new, unpublished version:
 
    ```sh
-   git tag -a v0.14.0 -m "MOTE v0.14.0"
-   git push origin v0.14.0
+   git tag -a v0.14.1 -m "MOTE v0.14.1"
+   git push origin v0.14.1
    ```
 
 GitHub Actions handles the build and asset upload:
@@ -27,7 +27,8 @@ GitHub Actions handles the build and asset upload:
 - Runs reusable CI on all three OSes, including the dependency audit.
 - Builds archives for Windows x64 (MSVC with static C runtime), Linux x64
   (Ubuntu 22.04), and macOS Apple Silicon (macOS 14).
-- Extracts each archive, checks CLI version/help output, and runs both SDK suites
+- Extracts each archive, checks CLI version/help output, and runs the Python,
+  TypeScript and Go SDK suites
   against the packaged bridge.
 - Requires all platforms, validates archive digests, and assembles `SHA256SUMS`.
 - Uploads the assets to a draft, checks names and sizes, and publishes the latest
@@ -75,7 +76,7 @@ This changes only that build; the default release artifacts stay stripped.
 python -m unittest discover -s scripts/tests -v
 cargo build --locked --release --bins
 python scripts/licenses.py --target YOUR_TARGET --output target/release
-python scripts/release.py --binary-dir target/release --output /path/outside/repo --target YOUR_TARGET --tag v0.14.0
+python scripts/release.py --binary-dir target/release --output /path/outside/repo --target YOUR_TARGET --tag v0.14.1
 ```
 
 Use the target that matches the binaries you built. Do not label MinGW/GNU Windows

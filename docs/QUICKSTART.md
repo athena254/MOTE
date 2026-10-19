@@ -91,7 +91,7 @@ user's privileges, and bridge timeouts cannot terminate every descendant process
 ### Unknown field `api_key_env`
 
 Use `auth_env: MOTE_API_KEY`. The v0.13.0 release example contained this typo;
-upgrade to v0.14.0 or fix the field. Unknown manifest fields are rejected.
+upgrade to v0.14.1 or fix the field. Unknown manifest fields are rejected.
 
 ### Missing auth environment variable
 

@@ -2,8 +2,8 @@
 
 ## Status and scope
 
-Accepted release scope for the next MOTE release, **v0.14.1**. Adding this
-specification does not publish that release or change the bridge protocol.
+Accepted release scope for MOTE **v0.14.1**. This specification defines the
+Go SDK contract without changing bridge protocol v1.
 The Go SDK is an official, repository-maintained integration alongside Python
 and TypeScript, not a separate agent runtime.
 
