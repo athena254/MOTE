@@ -29,6 +29,7 @@ class GoSDKReleaseTests(unittest.TestCase):
             with self.subTest(workflow=name):
                 self.assertIn("actions/setup-go@", workflow)
                 self.assertIn("go-version: '1.22'", workflow)
+                self.assertIn("macos-14", workflow)
                 self.assertIn("MOTE_BRIDGE", workflow)
                 if name == "ci.yml":
                     for command in ("gofmt -l .", "go build ./...", "go vet ./...", "go test ./..."):

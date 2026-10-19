@@ -69,8 +69,11 @@ context cause for `errors.Is`.
 
 ## v0.14.1 acceptance checks
 
-The repository CI gate must run the following on Linux, Windows and macOS, using
-Go 1.22 for the minimum-version contract and a real built bridge for E2E coverage:
+The repository CI gate must run the following on Linux, Windows and macOS 14
+(the macOS release baseline), using Go 1.22 for the minimum-version contract and
+a real built bridge for E2E coverage. Newer macOS versions may require a newer
+Go toolchain; the minimum language version does not imply that an old compiler
+can target every future operating-system loader:
 
 ```sh
 test -z "$(gofmt -l sdk/go)"

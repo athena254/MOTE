@@ -11,8 +11,11 @@ jobs:
   build-and-test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # Match the macOS release baseline: Go 1.22 predates the LC_UUID
+        # requirement enforced by the macOS 26 loader on macos-latest.
+        os: [ubuntu-latest, windows-latest, macos-14]
         rust: [stable]
 
     steps:
