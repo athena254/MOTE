@@ -70,7 +70,11 @@ jobs:
           MOTE_BRIDGE: ${{ github.workspace }}/target/release/mote-bridge${{ runner.os == 'Windows' && '.exe' || '' }}
         run: |
           cd sdk/go
-          test -z "$(gofmt -l .)"
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            printf '%s\n' "$unformatted"
+            exit 1
+          fi
           go build ./...
           go vet ./...
           go test ./...

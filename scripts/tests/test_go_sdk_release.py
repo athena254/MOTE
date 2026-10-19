@@ -19,6 +19,10 @@ class GoSDKReleaseTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("docs/GO_SDK_SPEC.md", readme)
 
+    def test_windows_checkouts_keep_go_sources_lf(self):
+        attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+        self.assertIn("*.go text eol=lf", attributes.splitlines())
+
     def test_ci_and_extracted_release_exercise_go_with_bridge(self):
         for name in ("ci.yml", "release.yml"):
             workflow = (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
