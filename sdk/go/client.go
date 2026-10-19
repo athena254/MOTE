@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"sync/atomic"
+
 	"time"
 )
 
@@ -31,6 +31,8 @@ type Client struct {
 	Env     []string
 }
 
+// Run executes one bridge process. Handlers execute synchronously and must
+// cooperate with their context: cancelling the child cannot stop host code.
 func (c *Client) Run(ctx context.Context, manifest Manifest, task string, tools map[string]Tool) (*RunResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -63,6 +65,9 @@ func (c *Client) Run(ctx context.Context, manifest Manifest, task string, tools 
 
 	runCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+	if runCtx.Err() != nil {
+		return nil, timeoutError(runCtx)
+	}
 
 	stdinR, stdinW, err := os.Pipe()
 	if err != nil {
@@ -97,11 +102,18 @@ func (c *Client) Run(ctx context.Context, manifest Manifest, task string, tools 
 		_ = stdoutW.Close()
 		_ = stderrR.Close()
 		_ = stderrW.Close()
+		if runCtx.Err() != nil {
+			return nil, timeoutError(runCtx)
+		}
 		return nil, newTransport("could not start mote bridge", err)
 	}
 	_ = stdinR.Close()
 	_ = stdoutW.Close()
 	_ = stderrW.Close()
+	// Release blocked writes even if a descendant inherits the read handle
+	// and outlives the direct bridge child.
+	stopWrite := context.AfterFunc(runCtx, func() { _ = stdinW.Close() })
+	defer stopWrite()
 
 	stop := make(chan struct{})
 	var stopOnce sync.Once
@@ -116,16 +128,9 @@ func (c *Client) Run(ctx context.Context, manifest Manifest, task string, tools 
 	waitCh := make(chan error, 1)
 	go func() { waitCh <- cmd.Wait() }()
 
-	var timedOut atomic.Bool
-	go func() {
-		<-runCtx.Done()
-		if errors.Is(runCtx.Err(), context.DeadlineExceeded) || ctx.Err() != nil {
-			timedOut.Store(true)
-		}
-	}()
-
 	reaped := false
 	defer func() {
+		cancel()
 		shutdown()
 		_ = stdinW.Close()
 		_ = stdoutR.Close()
@@ -146,14 +151,24 @@ func (c *Client) Run(ctx context.Context, manifest Manifest, task string, tools 
 	}()
 
 	writer := &frameWriter{w: stdinW}
-	if err := writer.write(newRunFrame(manifest, task, tools)); err != nil {
+	write := func(value any) error {
+		if runCtx.Err() != nil {
+			return timeoutError(runCtx)
+		}
+		err := writer.write(value)
+		if runCtx.Err() != nil {
+			return timeoutError(runCtx)
+		}
+		return err
+	}
+	if err := write(newRunFrame(manifest, task, tools)); err != nil {
 		return nil, err
 	}
 
 	expectedID := 1
 	var terminal *runResult
 	for terminal == nil {
-		item, err := nextItem(runCtx, ctx, frames)
+		item, err := nextItem(runCtx, frames)
 		if err != nil {
 			return nil, err
 		}
@@ -177,19 +192,19 @@ func (c *Client) Run(ctx context.Context, manifest Manifest, task string, tools 
 			tool, registered := tools[call.Name]
 			_, granted := grants[call.Name]
 			if !registered || !granted {
-				if err := writer.write(toolResultError(call.ID, "tool unavailable")); err != nil {
+				if err := write(toolResultError(call.ID, "tool unavailable")); err != nil {
 					return nil, err
 				}
 				continue
 			}
 			output, callErr := invokeTool(runCtx, tool, call.Input)
 			if callErr != nil {
-				if err := writer.write(toolResultError(call.ID, "tool failed")); err != nil {
+				if err := write(toolResultError(call.ID, "tool failed")); err != nil {
 					return nil, err
 				}
 				continue
 			}
-			if err := writer.write(toolResultOutput(call.ID, output)); err != nil {
+			if err := write(toolResultOutput(call.ID, output)); err != nil {
 				return nil, err
 			}
 		case "run_result":
@@ -207,7 +222,7 @@ func (c *Client) Run(ctx context.Context, manifest Manifest, task string, tools 
 
 	_ = stdinW.Close()
 
-	trailing, err := nextItem(runCtx, ctx, frames)
+	trailing, err := nextItem(runCtx, frames)
 	if err != nil {
 		return nil, err
 	}
@@ -223,11 +238,11 @@ func (c *Client) Run(ctx context.Context, manifest Manifest, task string, tools 
 	case waitErr = <-waitCh:
 		reaped = true
 	case <-runCtx.Done():
-		return nil, timeoutError(ctx)
+		return nil, timeoutError(runCtx)
 	}
 
-	if timedOut.Load() {
-		return nil, timeoutError(ctx)
+	if runCtx.Err() != nil {
+		return nil, timeoutError(runCtx)
 	}
 
 	code := exitCode(waitErr)
@@ -248,12 +263,18 @@ type frameItem struct {
 	eof bool
 }
 
-func nextItem(runCtx context.Context, caller context.Context, frames <-chan frameItem) (frameItem, error) {
+func nextItem(runCtx context.Context, frames <-chan frameItem) (frameItem, error) {
+	if runCtx.Err() != nil {
+		return frameItem{}, timeoutError(runCtx)
+	}
 	select {
 	case item := <-frames:
+		if runCtx.Err() != nil {
+			return frameItem{}, timeoutError(runCtx)
+		}
 		return item, nil
 	case <-runCtx.Done():
-		return frameItem{}, timeoutError(caller)
+		return frameItem{}, timeoutError(runCtx)
 	}
 }
 

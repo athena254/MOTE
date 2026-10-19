@@ -5,6 +5,9 @@ versioned stdio `mote-bridge` executable. It is source-installable and is not
 published to a module proxy as a released package. The SDK uses only the Go
 standard library at runtime.
 
+See the [official v0.14.1 Go SDK specification](../../docs/GO_SDK_SPEC.md)
+for the supported contract and release acceptance checks.
+
 Requirements: Go 1.22 or newer (`go 1.22` in `sdk/go/go.mod`). A Rust toolchain
 is not required when you use a downloaded bridge executable. The bridge is
 available in the [GitHub Releases](https://github.com/danny-dis/MOTE/releases)
@@ -33,8 +36,8 @@ require github.com/danny-dis/MOTE/sdk/go v0.0.0
 replace github.com/danny-dis/MOTE/sdk/go => /absolute/path/to/MOTE/sdk/go
 ```
 
-You can also replace the module with a Git revision instead of a local path.
-Then run the checked-in example from `sdk/go`:
+The checked-in example runs directly from the source checkout. Set the environment
+variables described below, then run it from `sdk/go`:
 
 ```bash
 go run ./example
@@ -121,8 +124,8 @@ transport and deadline failures return a `*MoteError`; inspect its `Code`
 `ErrSetup`, `ErrProtocol`, `ErrTransport` and `ErrTimeout` with `errors.Is`.
 
 `Tool{Description, Handler}` receives a JSON object and must return a string.
-Validate domain-specific fields in the handler. Handler panics and non-string
-results become a generic tool failure; exception text and sensitive inputs are
+Validate domain-specific fields in the handler. Handler panics and returned
+errors become a generic tool failure; exception text and sensitive inputs are
 not sent to the model. Registering a tool is not permission: its name must also
 be in `Manifest.Capabilities`. Runs and callbacks are not automatically
 retried, and a failed or timed-out run may already have side effects.
@@ -131,8 +134,10 @@ The SDK limits each bridge stdout frame to 1 MiB including its newline and
 retains at most 64 KiB of stderr. `Events` and model observations arrive after
 the run; there is no live-event or progress-stream API. Treat them as
 potentially sensitive. The SDK watchdog kills and reaps the direct bridge child
-on a deadline, but Go callbacks run in the host process and cannot be forcibly
-interrupted. Bound or isolate blocking callbacks and descendants yourself.
+on a deadline, but Go callbacks execute synchronously in the host process and
+cannot be forcibly interrupted. A handler that ignores its context keeps `Run`
+blocked even after the bridge is stopped. Bound or isolate blocking callbacks
+and descendants yourself.
 Neither the SDK nor the bridge is an OS sandbox; host code runs with the
 application's privileges.
 

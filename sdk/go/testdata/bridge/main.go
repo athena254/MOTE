@@ -97,11 +97,14 @@ func main() {
 	case "success":
 		readLine(in)
 		writeLine(map[string]any{"type": "tool_call", "id": 1, "name": "x", "input": map[string]any{"value": "hello"}})
-		readLine(in)
+		var reply map[string]any
+		if err := json.Unmarshal([]byte(readLine(in)), &reply); err != nil {
+			os.Exit(3)
+		}
 		writeLine(map[string]any{
 			"type":   "run_result",
 			"state":  "completed",
-			"events": []any{map[string]any{"type": "hello"}},
+			"events": []any{map[string]any{"type": "hello", "reply": reply}},
 		})
 
 	default:

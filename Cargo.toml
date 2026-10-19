@@ -1,6 +1,6 @@
 [package]
 name = "mote-agent"
-version = "0.13.1"
+version = "0.14.0"
 edition = "2021"
 default-run = "mote"
 description = "Minimal Orchestration & Task Execution"
@@ -9,8 +9,11 @@ repository = "https://github.com/danny-dis/MOTE"
 readme = "README.md"
 exclude = [
     "reports/**", "!reports/.keep",
-    "site/**", "test_input.txt",
+    "site/**",
 ]
+
+[profile.release]
+strip = "symbols"
 
 [lib]
 name = "mote"

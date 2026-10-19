@@ -24,9 +24,14 @@ func TestE2EBridge(t *testing.T) {
 	}
 
 	var calls int64
+	var callbackCalls atomic.Int32
+	var observationSeen atomic.Bool
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.Copy(io.Discard, r.Body)
+		body, _ := io.ReadAll(r.Body)
 		_ = r.Body.Close()
+		if strings.Contains(string(body), "HELLO") {
+			observationSeen.Store(true)
+		}
 
 		content := `{"action":"complete","summary":"HELLO"}`
 		if atomic.AddInt64(&calls, 1) == 1 {
@@ -74,6 +79,7 @@ func TestE2EBridge(t *testing.T) {
 		"uppercase": {
 			Description: "Returns uppercase text.",
 			Handler: func(_ context.Context, input map[string]any) (string, error) {
+				callbackCalls.Add(1)
 				text, _ := input["text"].(string)
 				return strings.ToUpper(text), nil
 			},
@@ -102,5 +108,8 @@ func TestE2EBridge(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("no event contained HELLO: %v", result.Events)
+	}
+	if callbackCalls.Load() != 1 || !observationSeen.Load() {
+		t.Fatalf("callback calls = %d, model received observation = %v", callbackCalls.Load(), observationSeen.Load())
 	}
 }

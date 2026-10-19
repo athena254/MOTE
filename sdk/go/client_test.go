@@ -39,6 +39,10 @@ func TestSuccessCallbackAndEvents(t *testing.T) {
 	if result.Events[0]["type"] != "hello" {
 		t.Fatalf("event = %v, want type=hello", result.Events[0])
 	}
+	reply, ok := result.Events[0]["reply"].(map[string]any)
+	if !ok || reply["output"] != "HELLO" || reply["id"] != float64(1) || reply["type"] != "tool_result" {
+		t.Fatalf("unexpected callback reply on the wire: %v", reply)
+	}
 }
 
 func TestProtocolErrors(t *testing.T) {
@@ -86,6 +90,10 @@ func TestCallbackErrorRedacted(t *testing.T) {
 	}
 	if !result.Success() {
 		t.Fatalf("expected success after redacted callback error, got %+v", result)
+	}
+	reply, ok := result.Events[0]["reply"].(map[string]any)
+	if !ok || reply["error"] != "tool failed" || len(reply) != 3 {
+		t.Fatalf("callback error was not redacted on the wire: %v", reply)
 	}
 	for _, event := range result.Events {
 		if strings.Contains(fmt.Sprint(event), secret) {

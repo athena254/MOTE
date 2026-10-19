@@ -11,7 +11,7 @@ import (
 	mote "github.com/danny-dis/MOTE/sdk/go"
 )
 
-func TestBlockingHandlerCannotDefeatDeadline(t *testing.T) {
+func TestCooperativeHandlerHonorsDeadline(t *testing.T) {
 	var called bool
 	tools := map[string]mote.Tool{
 		"x": {

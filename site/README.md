@@ -2,9 +2,9 @@
 
 Live: https://mote-runtime.vercel.app
 
-A dependency-free static public introduction to MOTE. HTML/CSS and a small script
-for accessible code tabs and copying. No account forms, analytics, model calls,
-serverless functions, or runtime secrets. Vercel may retain normal hosting logs.
+The public MOTE site is static HTML and CSS, with a small script for accessible
+code tabs and copying. It has no dependencies, account forms, analytics, model
+calls, serverless functions, or runtime secrets. Vercel may retain hosting logs.
 
 ## Local preview
 
@@ -14,29 +14,31 @@ From the repository root:
 python -m http.server 8893 --bind 127.0.0.1 --directory site/public
 ```
 
-Open http://127.0.0.1:8893. The code panels are integration examples, not a hosted
-agent demo. The page links to GitHub; source/download access follows repository
-visibility. The MOTE repository is public. Only the landing-page assets are served
-by the site; repository documents and build output are not part of its payload.
+Open http://127.0.0.1:8893. The code panels show integration examples; they do
+not run an agent in the browser. The page links to MOTE's public GitHub
+repository for source and downloads. The site serves only landing-page assets,
+not repository documents or build output.
 
 ## Deployment
 
-The Vercel project is `mote-runtime` in `kallmedis-projects`. Its repository root
-setting is `site`, framework is Other, and output is `public`. Git integration is
-not connected yet: Vercel rejected the repository connection. CLI deployment works.
-If Git integration is authorized later, use `production-ready` as its production branch.
-Deploy from the repository root after linking the project:
+The Vercel project is `mote-runtime` in `kallmedis-projects`. Set the repository
+root to `site`, the framework to Other, and the output directory to `public`.
+Deployments use the CLI because Vercel rejected the repository connection during
+setup. If you connect Git integration later, use `production-ready` as the
+production branch. Link the project, then deploy from the repository root:
 
 ```sh
 vercel deploy --prod --scope kallmedis-projects
 ```
 
-Only `site/public` is served. The repository-root `.vercelignore` allows only that
-directory and `site/vercel.json`; check `vercel deploy --dry --json` before publishing.
-Keep configuration, private documents, archives, credentials, and build caches
-outside `public`. The CSP blocks remote scripts, frames, and browser API calls.
+Only `site/public` is served. The repository-root `.vercelignore` includes that
+directory and `site/vercel.json`; inspect `vercel deploy --dry --json` before
+publishing. Keep configuration, private documents, archives, credentials, and
+build caches outside `public`. The CSP restricts scripts to the site itself,
+blocks browser API network connections, and prevents other pages from framing it.
 
-Before publishing a change, check mobile/desktop overflow, keyboard navigation,
-tab switching, copy behavior, FAQ expansion, links, security headers, social image,
-and unauthenticated HTTP access to the production URL. Check the version label
-when publishing a new MOTE release. This site is independent of binary releases.
+Before publishing, check for overflow on mobile and desktop. Test keyboard
+navigation, code tabs, copying, FAQ expansion, and links. Check security headers,
+the social image, and access to the production URL without authentication.
+Update the version label for each MOTE release; site deployment is separate
+from binary releases.

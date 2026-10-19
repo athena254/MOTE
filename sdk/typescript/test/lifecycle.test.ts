@@ -12,12 +12,21 @@ function request(handler: (input:Record<string,unknown>)=>string|Promise<string>
 }
 const call = `console.log(JSON.stringify({type:'tool_call',id:1,name:'x',input:{}}));`;
 
-test('pending async callback cannot defeat deadline',{timeout:5000},async()=>{
-  let called=false;
-  const started=Date.now();
-  await assert.rejects(client(call,1000).run(request(()=>{called=true;return new Promise<string>(()=>{});})),MoteError);
-  assert.equal(called,true);
-  assert.ok(Date.now()-started<3000);
+test('pending async callback cannot defeat deadline',{timeout:15000},async(t)=>{
+  // Freeze the SDK timer until the real child reaches the pending callback.
+  t.mock.timers.enable({apis:['setTimeout']});
+  t.after(()=>t.mock.timers.tick(1000));
+  let entered!:()=>void;
+  const ready=new Promise<void>(resolve=>{entered=resolve;});
+  const timedOut=assert.rejects(
+    client(`setTimeout(()=>{${call}},1500);`,1000).run(request(()=>{
+      entered();return new Promise<string>(()=>{});
+    })),
+    (error:unknown)=>error instanceof MoteError&&error.code==='TIMEOUT'
+  );
+  await Promise.race([ready,timedOut.then(()=>{throw new Error('callback was not reached');})]);
+  t.mock.timers.tick(1000);
+  await timedOut;
 });
 
 test('registration without a grant never invokes callback',async()=>{
