@@ -10,6 +10,7 @@ SDK package versions and the bridge protocol are versioned separately.
   prior versions remain in Git history.
 - Public source and download links replace private-access instructions.
 - Release notes are generated from the tagged version's changelog section.
+- Added a Go 1.22+ SDK (`sdk/go`) for the versioned stdio bridge, with host tool callbacks and tests.
 
 ## 0.13.1
 

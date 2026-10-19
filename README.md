@@ -46,14 +46,15 @@ Binaries are unsigned/not notarized; checksums verify integrity, not publisher i
   run/tool/observation limits, cancellation hooks, and post-run events.
 - **Built-in tools:** file reads/writes, directory listing, restricted shell/Git modes,
   and optional typed decisions. Access is opt-in.
-- **Application-owned tools:** Rust handlers or Python/TypeScript callbacks through
+- **Application-owned tools:** Rust handlers or Python/TypeScript/Go callbacks through
   the separate `mote-bridge` process. Registration does not grant permission.
-- **Thin SDKs and a Rust starter:** no third-party SDK runtime dependencies.
+- **Thin SDKs (Python/TypeScript/Go) and a Rust starter:** no third-party SDK runtime
+  dependencies.
 - **Tested distributions:** cross-platform CI, extracted-archive integration tests,
   SHA-256 checksums, and bundled dependency license notices.
 
 The Rust package is `mote-agent`, imported as `mote`; the unrelated `mote` package
-on crates.io is **not this project**. Python/TypeScript SDKs install from source,
+on crates.io is **not this project**. Python/TypeScript/Go SDKs install from source,
 not npm/PyPI. Use source and SDKs matching your installed release.
 
 ## What MOTE does not provide
@@ -73,7 +74,7 @@ Deterministic tests use scripted model responses; validate real outputs in your 
   [Configuration reference](docs/CONFIGURATION.md).
 - **Build:** [Choose an integration](docs/BUILDING_ON_MOTE.md) ·
   [Python SDK](sdk/python/README.md) · [TypeScript SDK](sdk/typescript/README.md) ·
-  [Rust starter](starters/rust-agent/README.md).
+  [Go SDK](sdk/go/README.md) · [Rust starter](starters/rust-agent/README.md).
 - **Understand:** [Architecture and design principles](docs/ARCHITECTURE.md) ·
   [Bridge protocol](docs/BRIDGE_PROTOCOL.md) · [Security](SECURITY.md).
 - **Maintain:** [Contributing and support](CONTRIBUTING.md) ·

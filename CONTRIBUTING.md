@@ -36,6 +36,7 @@ Clone the repository and work from its root. The integration branch is
 - Python 3.11 for repository release tooling and CI parity; the Python SDK's supported
   runtime is documented in its package metadata.
 - Node 22 for CI parity with the TypeScript SDK.
+- Go 1.22 or newer for the Go SDK checks.
 
 ```sh
 cargo build --locked --release --bins
@@ -75,6 +76,9 @@ npm --prefix sdk/typescript run pack:check
 cargo test --locked --manifest-path starters/rust-agent/Cargo.toml
 cargo fmt --check --manifest-path starters/rust-agent/Cargo.toml
 cargo clippy --locked --manifest-path starters/rust-agent/Cargo.toml --all-targets -- -D warnings
+go -C sdk/go build ./...
+go -C sdk/go vet ./...
+go -C sdk/go test ./...
 ```
 
 The SDK integration fixtures use a local scripted HTTP model server. They execute

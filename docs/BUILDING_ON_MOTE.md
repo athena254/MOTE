@@ -10,6 +10,8 @@ An HTTP worker service is not required.
   install from source and register Python functions as tools.
 - **[TypeScript / Node SDK](../sdk/typescript/README.md):** Node 20+, no runtime npm
   dependencies; build/install the source package and register JavaScript callbacks.
+- **[Go SDK](../sdk/go/README.md):** Go 1.22+, standard-library-only runtime; import the
+  module and register Go functions as host tool handlers.
 - **[Rust starter](../starters/rust-agent/README.md):** embed the library directly,
   register a Rust handler, and validate its output file. No bridge is needed.
 - **[CLI](QUICKSTART.md):** run YAML-configured tasks without embedding a library.
@@ -21,7 +23,7 @@ local path or pinned Git revision for this source, not the unrelated `mote` crat
 
 ## Get the bridge
 
-Python/TypeScript users can [download](https://github.com/danny-dis/MOTE/releases/latest)
+Python/TypeScript/Go users can [download](https://github.com/danny-dis/MOTE/releases/latest)
 the CLI/bridge archive without installing Rust. Follow the [quick start](QUICKSTART.md),
 verify the checksum, and pass the absolute path to `mote-bridge` (`mote-bridge.exe`
 on Windows). Downloads are public but unsigned/not notarized.
@@ -33,7 +35,7 @@ cargo build --locked --release --bins
 ```
 
 The binaries are under `target/release`. SDKs use one bridge subprocess per run,
-without a command shell, and support executable paths containing spaces. Both SDKs
+without a command shell, and support executable paths containing spaces. All SDKs
 can use built-in capabilities without custom callbacks. Select a reachable model
 and configure credentials by environment-variable name using `auth_env`; see
 [Configuration](CONFIGURATION.md).
